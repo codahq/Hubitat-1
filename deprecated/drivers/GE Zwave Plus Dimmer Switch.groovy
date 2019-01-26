@@ -14,34 +14,34 @@
  *  Copyright 2018 Stephan Hackett
  *
  */
-def version() {"v1.0.20190111"}
+def version() { "v1.0.20190111" }
 
 metadata {
-	definition (name: "GE Zwave Plus Dimmer Switch", namespace: "stephack", author: "Stephan Hackett and Chris Nussbaum") {
+	definition(name: "GE Zwave Plus Dimmer Switch", namespace: "stephack", author: "Stephan Hackett and Chris Nussbaum") {
 		capability "Switch"
-        capability "PushableButton"
+		capability "PushableButton"
 		capability "Refresh"
 		capability "Switch Level"
 		capability "Sensor"
 		capability "Actuator"
 		capability "Light"
-        
-        command "doubleTapUpper"
-        command "doubleTapLower"
-        command "inverted"
-        command "notInverted"
-        command "configure"
-        command "indicatorWhenOn"
-        command "indicatorWhenOff"
-        command "indicatorNever"
+
+		command "doubleTapUpper"
+		command "doubleTapLower"
+		command "inverted"
+		command "notInverted"
+		command "configure"
+		command "indicatorWhenOn"
+		command "indicatorWhenOff"
+		command "indicatorNever"
 
 		// These include version because there are older firmwares that don't support double-tap or the extra association groups
-        fingerprint mfr:"0063", prod:"4944", model:"3038", ver: "5.26", deviceJoinName: "GE Z-Wave Plus Wall Dimmer"
-        fingerprint mfr:"0063", prod:"4944", model:"3039", ver: "5.19", deviceJoinName: "GE Z-Wave Plus 1000W Wall Dimmer"
-        fingerprint mfr:"0063", prod:"4944", model:"3130", ver: "5.21", deviceJoinName: "GE Z-Wave Plus Toggle Dimmer"
-        fingerprint mfr:"0063", prod:"4944", model:"3135", ver: "5.26", deviceJoinName: "Jasco Z-Wave Plus Wall Dimmer"
-        fingerprint mfr:"0063", prod:"4944", model:"3136", ver: "5.21", deviceJoinName: "Jasco Z-Wave Plus 1000W Wall Dimmer"
-        fingerprint mfr:"0063", prod:"4944", model:"3137", ver: "5.20", deviceJoinName: "Jasco Z-Wave Plus Toggle Dimmer"
+		fingerprint mfr: "0063", prod: "4944", model: "3038", ver: "5.26", deviceJoinName: "GE Z-Wave Plus Wall Dimmer"
+		fingerprint mfr: "0063", prod: "4944", model: "3039", ver: "5.19", deviceJoinName: "GE Z-Wave Plus 1000W Wall Dimmer"
+		fingerprint mfr: "0063", prod: "4944", model: "3130", ver: "5.21", deviceJoinName: "GE Z-Wave Plus Toggle Dimmer"
+		fingerprint mfr: "0063", prod: "4944", model: "3135", ver: "5.26", deviceJoinName: "Jasco Z-Wave Plus Wall Dimmer"
+		fingerprint mfr: "0063", prod: "4944", model: "3136", ver: "5.21", deviceJoinName: "Jasco Z-Wave Plus 1000W Wall Dimmer"
+		fingerprint mfr: "0063", prod: "4944", model: "3137", ver: "5.20", deviceJoinName: "Jasco Z-Wave Plus Toggle Dimmer"
 	}
 }
 
@@ -55,73 +55,73 @@ def getCommandClassVersions() {
 }
 
 def parse(String description) {
-    //log.debug "Description: ${description}"
+	//log.debug "Description: ${description}"
 	def result = null
 	if (description != "updated") {
 		def cmd = zwave.parse(description, commandClassVersions)
-        //log.debug "CMD: ${cmd}"
+		//log.debug "CMD: ${cmd}"
 		if (cmd) {
 			result = zwaveEvent(cmd)
-	        log.debug("'$description' parsed to $result")
+			log.debug("'$description' parsed to $result")
 		} else {
 			log.debug("Couldn't zwave.parse '$description'")
 		}
 	}
-    result
+	result
 }
 
 def zwaveEvent(hubitat.zwave.commands.basicv1.BasicReport cmd) {
-    //log.info "bv1Report"
+	//log.info "bv1Report"
 	dimmerEvents(cmd)
 }
 
 def zwaveEvent(hubitat.zwave.commands.basicv1.BasicSet cmd) {
-    //log.info "bv1BasicSet"
+	//log.info "bv1BasicSet"
 	buttonEvents(cmd)
 }
 
 def zwaveEvent(hubitat.zwave.commands.switchmultilevelv3.SwitchMultilevelReport cmd) {
-    //log.info "sv3Report"
+	//log.info "sv3Report"
 	dimmerEvents(cmd)
 }
 
 def zwaveEvent(hubitat.zwave.commands.crc16encapv1.Crc16Encap cmd) {
-    //log.info "CrC"
+	//log.info "CrC"
 	def versions = commandClassVersions
 	def version = versions[cmd.commandClass as Integer]
 	def ccObj = version ? zwave.commandClass(cmd.commandClass, version) : zwave.commandClass(cmd.commandClass)
-	def encapsulatedCommand = ccObj?.command(cmd.command)?.parse(cmd.data)
+	def encapsulatedCommand = ccObj ?.command(cmd.command) ?.parse(cmd.data)
 	if (encapsulatedCommand) {
 		zwaveEvent(encapsulatedCommand)
 	}
 }
 
 def zwaveEvent(hubitat.zwave.Command cmd) {
-    //log.info "not interested"
+	//log.info "not interested"
 	// Handles all Z-Wave commands we aren't interested in
-	[:]
+	[: ]
 }
 
 def dimmerEvents(hubitat.zwave.Command cmd) {
-    //log.info "dimmerEvent"
+	//log.info "dimmerEvent"
 	def result = []
 	def value = (cmd.value ? "on" : "off")
 	def switchEvent = createEvent(name: "switch", value: value, descriptionText: "$device.displayName was turned $value")
 	result << switchEvent
 	if (cmd.value) {
-		result << createEvent(name: "level", value: cmd.value, descriptionText: "$device.displayName brightness set to $cmd.value",  unit: "%")
-	}	
+		result << createEvent(name: "level", value: cmd.value, descriptionText: "$device.displayName brightness set to $cmd.value", unit: "%")
+	}
 	return result
 }
 
 def buttonEvents(hubitat.zwave.Command cmd){
-    //log.info "buttonEvent"
-    if (cmd.value == 255) {
-    	createEvent(name: "pushed", value: 1, descriptionText: "$device.displayName Upper Paddle Double-tapped (Button 1)", isStateChange: true, type: "physical")
-    }
+	//log.info "buttonEvent"
+	if (cmd.value == 255) {
+		createEvent(name: "pushed", value: 1, descriptionText: "$device.displayName Upper Paddle Double-tapped (Button 1)", isStateChange: true, type: "physical")
+	}
 	else if (cmd.value == 0) {
-    	createEvent(name: "pushed", value: 2, descriptionText: "$device.displayName Lower Paddle Double-tapped (Button 2)", isStateChange: true, type: "physical")
-    }    
+		createEvent(name: "pushed", value: 2, descriptionText: "$device.displayName Lower Paddle Double-tapped (Button 2)", isStateChange: true, type: "physical")
+	}
 }
 
 def on() {
@@ -159,7 +159,7 @@ def inverted() {
 }
 
 def notInverted() {
-	sendEvent(name: "inverted", value: "not inverted", descriptionText: "Paddle Buttons NOT INVERTED",display: false)
+	sendEvent(name: "inverted", value: "not inverted", descriptionText: "Paddle Buttons NOT INVERTED", display: false)
 	zwave.configurationV2.configurationSet(configurationValue: [0], parameterNumber: 4, size: 1).format()
 }
 
@@ -172,23 +172,23 @@ def doubleTapLower() {
 }
 
 def configure(){
- 	sendEvent(name: "numberOfButtons", value: 2, displayed: false)
+	sendEvent(name: "numberOfButtons", value: 2, displayed: false)
 	def cmds = []
-    // Get current config parameter values
-    cmds << zwave.configurationV2.configurationGet(parameterNumber: 3).format()
-    cmds << zwave.configurationV2.configurationGet(parameterNumber: 4).format()
-    cmds << zwave.configurationV2.configurationGet(parameterNumber: 7).format()
-    cmds << zwave.configurationV2.configurationGet(parameterNumber: 8).format()
-    cmds << zwave.configurationV2.configurationGet(parameterNumber: 9).format()
-    cmds << zwave.configurationV2.configurationGet(parameterNumber: 10).format()
-    cmds << zwave.configurationV2.configurationGet(parameterNumber: 11).format()
-    cmds << zwave.configurationV2.configurationGet(parameterNumber: 12).format()
-    
-    // Add the hub to association group 3 to get double-tap notifications
-    cmds << zwave.associationV2.associationSet(groupingIdentifier: 3, nodeId: zwaveHubNodeId).format()
-    
-    delayBetween(cmds,500)
-    response(refresh())
+	// Get current config parameter values
+	cmds << zwave.configurationV2.configurationGet(parameterNumber: 3).format()
+	cmds << zwave.configurationV2.configurationGet(parameterNumber: 4).format()
+	cmds << zwave.configurationV2.configurationGet(parameterNumber: 7).format()
+	cmds << zwave.configurationV2.configurationGet(parameterNumber: 8).format()
+	cmds << zwave.configurationV2.configurationGet(parameterNumber: 9).format()
+	cmds << zwave.configurationV2.configurationGet(parameterNumber: 10).format()
+	cmds << zwave.configurationV2.configurationGet(parameterNumber: 11).format()
+	cmds << zwave.configurationV2.configurationGet(parameterNumber: 12).format()
+
+	// Add the hub to association group 3 to get double-tap notifications
+	cmds << zwave.associationV2.associationSet(groupingIdentifier: 3, nodeId: zwaveHubNodeId).format()
+
+	delayBetween(cmds, 500)
+	response(refresh())
 }
 
 def refresh() {
@@ -196,7 +196,7 @@ def refresh() {
 }
 
 def setLevel(level) {
-	if(level > 99) level = 99
+	if (level > 99) level = 99
 	delayBetween([
 		zwave.basicV1.basicSet(value: level).format(),
 		zwave.switchMultilevelV1.switchMultilevelGet().format()
@@ -206,27 +206,27 @@ def setLevel(level) {
 def setLevel(value, duration) {
 	log.debug "setLevel >> value: $value, duration: $duration"
 	def valueaux = value as Integer
-    log.info valueaux
+	log.info valueaux
 	def level = Math.max(Math.min(valueaux, 99), 0)
-    log.info level
+	log.info level
 	def dimmingDuration = duration < 128 ? duration : 128 + Math.round(duration / 60)
-    log.info dimmingDuration
-	def getStatusDelay = duration < 128 ? (duration*1000)+2000 : (Math.round(duration / 60)*60*1000)+2000
-    log.info getStatusDelay
-	delayBetween ([
-        zwave.switchMultilevelV2.switchMultilevelSet(value: level, dimmingDuration: dimmingDuration).format(),
+	log.info dimmingDuration
+	def getStatusDelay = duration < 128 ? (duration * 1000) + 2000 : (Math.round(duration / 60) * 60 * 1000) + 2000
+	log.info getStatusDelay
+	delayBetween([
+		zwave.switchMultilevelV2.switchMultilevelSet(value: level, dimmingDuration: dimmingDuration).format(),
 		zwave.switchMultilevelV1.switchMultilevelGet().format()
-    ], getStatusDelay.toInteger())
+	], getStatusDelay.toInteger())
 }
 
 def installed() {
- 	initialize()
+	initialize()
 }
 
 def updated() {
- 	initialize()
+	initialize()
 }
 
 def initialize() {
-    state.version = version()
+	state.version = version()
 }
